@@ -16,7 +16,7 @@ ANCHORS = np.array([
         [500.21971253, 321.72689938]],
        [[372.8490566 , 432.9509434 ],
         [639.91686461, 471.93349169],
-        [961.578125  , 637.625     ]]])
+        [961.578125  , 637.625     ]]], dtype=np.float32)
 
 
 class YOLOLoss(nn.Module):
@@ -87,7 +87,7 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.labels)
     def __getitem__(self, idx):
         img_path = os.path.join(self.image_dir, str(idx+1).zfill(6) + '.jpg')
-        image = np.expand_dims(np.array(Image.open(img_path).resize((416, 416)), dtype=np.float32) / 255., 0)
+        image = np.expand_dims(np.array(Image.open(img_path).resize((self.image_size, self.image_size)), dtype=np.float32) / 255., 0)
         targets = [torch.zeros((self.num_anchors_per_scale, s, s, 5))
                 for s in self.grid_sizes]
         bboxes = self.labels[idx]
@@ -211,7 +211,7 @@ def iou(box1, box2, is_pred=True):
         epsilon = 1e-6
         iou_score = intersection / (union + epsilon)
        
-        return iou_score.float()
+        return iou_score
     else:
         box, boxes = box1, box2
         x = np.minimum(box[0], boxes[:, 0])
@@ -220,4 +220,4 @@ def iou(box1, box2, is_pred=True):
         box_area = box[0] * box[1]
         boxes_area = boxes[:, 0] * boxes[:, 1]
         union = box_area + boxes_area - intersection
-        return (intersection / union).float()
+        return intersection / union
