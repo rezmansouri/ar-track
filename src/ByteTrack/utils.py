@@ -56,7 +56,7 @@ class Dataset(torch.utils.data.Dataset):
    
     def __init__(
         self, image_dir, labels_path, anchors,
-        image_size=416, grid_sizes=[13, 26, 52], original_image_size=4096
+        image_size=416, grid_sizes=[13, 26, 52], original_image_size=4096, transform=None
     ):
         labels = []
         with open(labels_path, 'r', encoding='utf-8') as label_file:
@@ -76,6 +76,7 @@ class Dataset(torch.utils.data.Dataset):
                     label.append([x, y, w, h])
         self.labels = labels
         self.image_dir = image_dir
+        self.transform = transform
         self.image_size = image_size
         self.grid_sizes = grid_sizes
         self.anchors = anchors.reshape(-1, 2) / original_image_size
@@ -87,10 +88,14 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.labels)
     def __getitem__(self, idx):
         img_path = os.path.join(self.image_dir, str(idx+1).zfill(6) + '.jpg')
-        image = np.expand_dims(np.array(Image.open(img_path).resize((self.image_size, self.image_size)), dtype=np.float32) / 255., 0)
+        image = np.array(Image.open(img_path).resize((self.image_size, self.image_size)), dtype=np.float32) / 255.
         targets = [torch.zeros((self.num_anchors_per_scale, s, s, 5))
                 for s in self.grid_sizes]
         bboxes = self.labels[idx]
+        if self.transform:
+            augs = self.transform(image=image, bboxes=bboxes)
+            image = augs["image"]
+            bboxes = augs["bboxes"]
         for box in bboxes:
             iou_anchors = iou(torch.tensor(box[2:4]), self.anchors, is_pred=False)
             anchor_indices = iou_anchors.argsort(descending=True, dim=0)
@@ -123,8 +128,7 @@ def convert_cells_to_bboxes(predictions, anchors, s, is_predictions=True):
     if is_predictions:
         anchors = anchors.reshape(1, len(anchors), 1, 1, 2)
         box_predictions[..., 0:2] = torch.sigmoid(box_predictions[..., 0:2])
-        box_predictions[..., 2:] = torch.exp(
-            box_predictions[..., 2:]) * anchors
+        box_predictions[..., 2:] = torch.exp(box_predictions[..., 2:]) * anchors
         scores = torch.sigmoid(predictions[..., 0:1])
     else:
         scores = predictions[..., 0:1]
@@ -134,13 +138,45 @@ def convert_cells_to_bboxes(predictions, anchors, s, is_predictions=True):
         .unsqueeze(-1)
         .to(predictions.device)
     )
-    x = 1 / s * (box_predictions[..., 0:1] + cell_indices)
-    y = 1 / s * (box_predictions[..., 1:2] + cell_indices.permute(0, 1, 3, 2, 4))
-    width_height = 1 / s * box_predictions[..., 2:4]
+    x = (box_predictions[..., 0:1] + cell_indices) / s
+    y = (box_predictions[..., 1:2] + cell_indices.permute(0, 1, 3, 2, 4)) / s
+    width_height = box_predictions[..., 2:4] / s
     converted_bboxes = torch.cat(
         (scores, x, y, width_height), dim=-1
     ).reshape(batch_size, num_anchors * s * s, 5)
     return converted_bboxes.tolist()
+
+
+def save_image(image, boxes, buf):
+    img = np.array(image)
+    h, w = img.shape
+    fig, ax = plt.subplots(1, figsize=(10, 10))
+    ax.axis('off')
+    fig.patch.set_visible(False)
+    ax.imshow(img, cmap='gray')
+    for box in boxes:
+       
+        box = box[1:]
+        
+        ww, hh = box[2] * w, box[3] * h
+        # print(box[2], box[3], ww, hh)
+       
+        upper_left_x = box[0] - box[2] / 2
+        upper_left_y = box[1] - box[3] / 2
+       
+        rect = patches.Rectangle(
+            (upper_left_x * w, upper_left_y * h),
+            box[2] * w,
+            box[3] * h,
+            linewidth=2,
+            edgecolor='red',
+            facecolor="none",
+        )
+       
+        ax.add_patch(rect)
+    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+    plt.close(fig)
+    return buf
 
 
 def plot_image(image, boxes):
@@ -151,6 +187,9 @@ def plot_image(image, boxes):
     for box in boxes:
        
         box = box[1:]
+        
+        ww, hh = box[2] * w, box[3] * h
+        # print(box[2], box[3], ww, hh)
        
         upper_left_x = box[0] - box[2] / 2
         upper_left_y = box[1] - box[3] / 2
@@ -168,22 +207,20 @@ def plot_image(image, boxes):
     plt.show()
 
 def nms(bboxes, iou_threshold, threshold):
-	
+    # print(len(bboxes))
     bboxes = [box for box in bboxes if box[0] > threshold]
+    # print(len(bboxes))
     bboxes = sorted(bboxes, key=lambda x: x[0], reverse=True)
-    bboxes_nms = []
+    nms_bboxes = []
     while bboxes:
-        first_box = bboxes.pop(0)
-        for box in bboxes:
-            if box[0] != first_box[0] or iou(
-                torch.tensor(first_box[1:]),
-                torch.tensor(box[1:]),
-            ) < iou_threshold:
-               
-                if box not in bboxes_nms:
-                   
-                    bboxes_nms.append(box)
-    return bboxes_nms
+        # print(len(bboxes))
+        chosen_box = bboxes.pop(0)
+        nms_bboxes.append(chosen_box)
+        bboxes = [
+            box for box in bboxes
+            if iou(torch.tensor(chosen_box[1:]), torch.tensor(box[1:])) < iou_threshold
+        ]
+    return nms_bboxes
 
 def iou(box1, box2, is_pred=True):
     if is_pred:
