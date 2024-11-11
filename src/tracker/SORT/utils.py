@@ -6,17 +6,32 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+cmap = plt.get_cmap('hsv')
+COLORS = [cmap(i) for i in np.linspace(0, 1, 200)]
+np.random.shuffle(COLORS)
+COLORS += COLORS + COLORS
 
-ANCHORS = np.array([
-       [[ 89.75458716, 106.92431193],
-        [174.64      , 158.47703704],
-        [289.96757458, 187.5693904 ]],
-       [[221.38817481, 271.33161954],
-        [358.9468599 , 263.64251208],
-        [500.21971253, 321.72689938]],
-       [[372.8490566 , 432.9509434 ],
-        [639.91686461, 471.93349169],
-        [961.578125  , 637.625     ]]], dtype=np.float32)
+
+ANCHORS = np.array(
+    [
+        [
+            [89.75458716, 106.92431193],
+            [174.64, 158.47703704],
+            [289.96757458, 187.5693904],
+        ],
+        [
+            [221.38817481, 271.33161954],
+            [358.9468599, 263.64251208],
+            [500.21971253, 321.72689938],
+        ],
+        [
+            [372.8490566, 432.9509434],
+            [639.91686461, 471.93349169],
+            [961.578125, 637.625],
+        ],
+    ],
+    dtype=np.float32,
+)
 
 
 class YOLOLoss(nn.Module):
@@ -31,40 +46,43 @@ class YOLOLoss(nn.Module):
         no_obj = target[..., 0] == 0
 
         no_object_loss = self.bce(
-            (pred[..., 0:1][no_obj]), (target[..., 0:1][no_obj]),
+            (pred[..., 0:1][no_obj]),
+            (target[..., 0:1][no_obj]),
         )
 
         anchors = anchors.reshape(1, 3, 1, 1, 2)
-        box_preds = torch.cat([self.sigmoid(pred[..., 1:3]),
-                            torch.exp(pred[..., 3:5]) * anchors
-                            ],dim=-1)
+        box_preds = torch.cat(
+            [self.sigmoid(pred[..., 1:3]), torch.exp(pred[..., 3:5]) * anchors], dim=-1
+        )
         ious = iou(box_preds[obj], target[..., 1:5][obj]).detach()
-        object_loss = self.mse(self.sigmoid(pred[..., 0:1][obj]),
-                            ious * target[..., 0:1][obj])
+        object_loss = self.mse(
+            self.sigmoid(pred[..., 0:1][obj]), ious * target[..., 0:1][obj]
+        )
         pred[..., 1:3] = self.sigmoid(pred[..., 1:3])
         target[..., 3:5] = torch.log(1e-6 + target[..., 3:5] / anchors)
-        box_loss = self.mse(pred[..., 1:5][obj],
-                            target[..., 1:5][obj])
-        return (
-            box_loss
-            + object_loss
-            + no_object_loss
-        )
+        box_loss = self.mse(pred[..., 1:5][obj], target[..., 1:5][obj])
+        return box_loss + object_loss + no_object_loss
 
 
 class Dataset(torch.utils.data.Dataset):
-   
+
     def __init__(
-        self, image_dir, labels_path, anchors,
-        image_size=416, grid_sizes=[13, 26, 52], original_image_size=4096, transform=None
+        self,
+        image_dir,
+        labels_path,
+        anchors,
+        image_size=416,
+        grid_sizes=[13, 26, 52],
+        original_image_size=4096,
+        transform=None,
     ):
         labels = []
-        with open(labels_path, 'r', encoding='utf-8') as label_file:
+        with open(labels_path, "r", encoding="utf-8") as label_file:
             label_file.readline()
             label = []
-            ix_prev = '1'
+            ix_prev = "1"
             for line in label_file.readlines():
-                ix, x1, y1, w, h = [a for a in line.split(',')]
+                ix, x1, y1, w, h = [a for a in line.split(",")]
                 x1, y1, w, h = [float(a) / original_image_size for a in [x1, y1, w, h]]
                 x = x1 + w / 2
                 y = y1 + h / 2
@@ -83,14 +101,22 @@ class Dataset(torch.utils.data.Dataset):
         self.num_anchors = self.anchors.shape[0]
         self.num_anchors_per_scale = self.num_anchors // 3
         self.ignore_iou_thresh = 0.5
-       
+
     def __len__(self):
         return len(self.labels)
+
     def __getitem__(self, idx):
-        img_path = os.path.join(self.image_dir, str(idx+1).zfill(6) + '.jpg')
-        image = np.array(Image.open(img_path).resize((self.image_size, self.image_size)), dtype=np.float32) / 255.
-        targets = [torch.zeros((self.num_anchors_per_scale, s, s, 5))
-                for s in self.grid_sizes]
+        img_path = os.path.join(self.image_dir, str(idx + 1).zfill(6) + ".jpg")
+        image = (
+            np.array(
+                Image.open(img_path).resize((self.image_size, self.image_size)),
+                dtype=np.float32,
+            )
+            / 255.0
+        )
+        targets = [
+            torch.zeros((self.num_anchors_per_scale, s, s, 5)) for s in self.grid_sizes
+        ]
         bboxes = self.labels[idx]
         if self.transform:
             augs = self.transform(image=image, bboxes=bboxes)
@@ -112,14 +138,17 @@ class Dataset(torch.utils.data.Dataset):
                     x_cell, y_cell = s * x - j, s * y - i
                     width_cell, height_cell = (width * s, height * s)
                     box_coordinates = torch.tensor(
-                                        [x_cell, y_cell, width_cell,
-                                        height_cell]
-                                    )
+                        [x_cell, y_cell, width_cell, height_cell]
+                    )
                     targets[scale_idx][anchor_on_scale, i, j, 1:5] = box_coordinates
                     has_anchor[scale_idx] = True
-                elif not anchor_taken and iou_anchors[anchor_idx] > self.ignore_iou_thresh:
+                elif (
+                    not anchor_taken
+                    and iou_anchors[anchor_idx] > self.ignore_iou_thresh
+                ):
                     targets[scale_idx][anchor_on_scale, i, j, 0] = -1
         return image, tuple(targets)
+
 
 def convert_cells_to_bboxes(predictions, anchors, s, is_predictions=True):
     batch_size = predictions.shape[0]
@@ -141,9 +170,9 @@ def convert_cells_to_bboxes(predictions, anchors, s, is_predictions=True):
     x = (box_predictions[..., 0:1] + cell_indices) / s
     y = (box_predictions[..., 1:2] + cell_indices.permute(0, 1, 3, 2, 4)) / s
     width_height = box_predictions[..., 2:4] / s
-    converted_bboxes = torch.cat(
-        (scores, x, y, width_height), dim=-1
-    ).reshape(batch_size, num_anchors * s * s, 5)
+    converted_bboxes = torch.cat((scores, x, y, width_height), dim=-1).reshape(
+        batch_size, num_anchors * s * s, 5
+    )
     return converted_bboxes.tolist()
 
 
@@ -151,57 +180,59 @@ def save_image(image, boxes, buf):
     img = np.array(image)
     h, w = img.shape
     fig, ax = plt.subplots(1, figsize=(10, 10))
-    ax.axis('off')
+    ax.axis("off")
     fig.patch.set_visible(False)
-    ax.imshow(img, cmap='gray')
-    for box in boxes:
-       
-        box = box[1:]
-       
+    ax.imshow(img, cmap="gray")
+    for box_with_id in boxes:
+
+        box = box_with_id[:-1]
+        box[2:4] -= box[0:2]
+
         upper_left_x = box[0] - box[2] / 2
         upper_left_y = box[1] - box[3] / 2
-       
+
         rect = patches.Rectangle(
             (upper_left_x * w, upper_left_y * h),
             box[2] * w,
             box[3] * h,
             linewidth=2,
-            edgecolor='red',
+            edgecolor=COLORS[int(box_with_id[-1])],
             facecolor="none",
         )
-       
+
         ax.add_patch(rect)
-    plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+    plt.savefig(buf, format="png", bbox_inches="tight", pad_inches=0)
     plt.close(fig)
     return buf
 
 
-def plot_image(image, boxes):
+def plot_image(image, boxes, name):
     img = np.array(image)
     h, w = img.shape
-    _, ax = plt.subplots(1)
-    ax.imshow(img, cmap='gray')
+    fig, ax = plt.subplots(1, figsize=(10, 10))
+    ax.axis("off")
+    fig.patch.set_visible(False)
+    ax.imshow(img, cmap="gray")
     for box in boxes:
-       
+
         box = box[1:]
-        
-        ww, hh = box[2] * w, box[3] * h
-        # print(box[2], box[3], ww, hh)
-       
+
         upper_left_x = box[0] - box[2] / 2
         upper_left_y = box[1] - box[3] / 2
-       
+
         rect = patches.Rectangle(
             (upper_left_x * w, upper_left_y * h),
             box[2] * w,
             box[3] * h,
             linewidth=2,
-            edgecolor='red',
+            edgecolor="red",
             facecolor="none",
         )
-       
+
         ax.add_patch(rect)
-    plt.show()
+    plt.savefig(f"{name}.png", format="png", bbox_inches="tight", pad_inches=0)
+    plt.close(fig)
+
 
 def nms(bboxes, iou_threshold, threshold):
     # print(len(bboxes))
@@ -214,10 +245,12 @@ def nms(bboxes, iou_threshold, threshold):
         chosen_box = bboxes.pop(0)
         nms_bboxes.append(chosen_box)
         bboxes = [
-            box for box in bboxes
+            box
+            for box in bboxes
             if iou(torch.tensor(chosen_box[1:]), torch.tensor(box[1:])) < iou_threshold
         ]
     return nms_bboxes
+
 
 def iou(box1, box2, is_pred=True):
     if is_pred:
@@ -225,26 +258,26 @@ def iou(box1, box2, is_pred=True):
         b1_y1 = box1[..., 1:2] - box1[..., 3:4] / 2
         b1_x2 = box1[..., 0:1] + box1[..., 2:3] / 2
         b1_y2 = box1[..., 1:2] + box1[..., 3:4] / 2
-       
+
         b2_x1 = box2[..., 0:1] - box2[..., 2:3] / 2
         b2_y1 = box2[..., 1:2] - box2[..., 3:4] / 2
         b2_x2 = box2[..., 0:1] + box2[..., 2:3] / 2
         b2_y2 = box2[..., 1:2] + box2[..., 3:4] / 2
-       
+
         x1 = torch.max(b1_x1, b2_x1)
         y1 = torch.max(b1_y1, b2_y1)
         x2 = torch.min(b1_x2, b2_x2)
         y2 = torch.min(b1_y2, b2_y2)
-       
+
         intersection = (x2 - x1).clamp(0) * (y2 - y1).clamp(0)
-       
+
         box1_area = abs((b1_x2 - b1_x1) * (b1_y2 - b1_y1))
         box2_area = abs((b2_x2 - b2_x1) * (b2_y2 - b2_y1))
         union = box1_area + box2_area - intersection
-       
+
         epsilon = 1e-6
         iou_score = intersection / (union + epsilon)
-       
+
         return iou_score
     else:
         box, boxes = box1, box2
