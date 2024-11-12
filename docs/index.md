@@ -4,5 +4,7 @@
 
 ### Reports
 [1. MOT methods surveying](1.md)
-[1. Detection - YOLOv3](2.md)
-[1. Tracking - SORT and Byte](3.md)
+
+[2. Detection - YOLOv3](2.md)
+
+[3. Tracking - SORT and Byte](3.md)
