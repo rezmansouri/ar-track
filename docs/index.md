@@ -8,3 +8,5 @@
 [2. Detection - YOLOv3](2.md)
 
 [3. Tracking - SORT and Byte](3.md)
+
+[4. Tracking - DeepSORT (Questions)](4.md)
