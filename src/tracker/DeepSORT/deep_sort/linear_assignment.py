@@ -1,7 +1,7 @@
 # vim: expandtab:ts=4:sw=4
 from __future__ import absolute_import
 import numpy as np
-from scipy.optimize import linear_sum_assignment as linear_assignment
+from .la import linear_assignment
 from . import kalman_filter
 
 
@@ -58,6 +58,7 @@ def min_cost_matching(
     indices = linear_assignment(cost_matrix)
 
     matches, unmatched_tracks, unmatched_detections = [], [], []
+    # print(indices)
     for col, detection_idx in enumerate(detection_indices):
         if col not in indices[:, 1]:
             unmatched_detections.append(detection_idx)

@@ -176,27 +176,28 @@ def convert_cells_to_bboxes(predictions, anchors, s, is_predictions=True):
     return converted_bboxes.tolist()
 
 
-def save_image(image, boxes, buf):
+def save_image(image, tracks, buf):
     img = np.array(image)
     h, w = img.shape
     fig, ax = plt.subplots(1, figsize=(10, 10))
     ax.axis("off")
     fig.patch.set_visible(False)
     ax.imshow(img, cmap="gray")
-    for box_with_id in boxes:
+    for track in tracks:
+        if not track.is_confirmed() or track.time_since_update > 1:
+            continue
+        box = track.to_tlwh()
+        # box[2:4] -= box[0:2]
 
-        box = box_with_id[:-1]
-        box[2:4] -= box[0:2]
-
-        upper_left_x = box[0] - box[2] / 2
-        upper_left_y = box[1] - box[3] / 2
+        upper_left_x = box[0]
+        upper_left_y = box[1]
 
         rect = patches.Rectangle(
             (upper_left_x * w, upper_left_y * h),
             box[2] * w,
             box[3] * h,
             linewidth=2,
-            edgecolor=COLORS[int(box_with_id[-1])],
+            edgecolor=COLORS[track.track_id],
             facecolor="none",
         )
 
