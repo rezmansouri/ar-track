@@ -10,16 +10,7 @@ from sunpy.net import Fido, hek, attrs as a
 
 
 def main():
-    # cadance 4 is preferred
     start_date, end_date, cadance = sys.argv[1:]
-    results = Fido.search(
-        a.Time(start_date, end_date),
-        a.Instrument.hmi,
-        a.Physobs.los_magnetic_field,
-        a.Sample(int(cadance) * u.hour),
-    )
-    files = Fido.fetch(results)
-    hek_client = hek.HEKClient()
     time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     data_path = os.path.join(".", f"{time}-S{start_date}E{end_date}C{cadance}")
     images_path = os.path.join(data_path, "images")
@@ -27,6 +18,18 @@ def main():
     os.mkdir(data_path)
     os.mkdir(images_path)
     os.mkdir(labels_path)
+    # cadance 4 is preferred
+    results = Fido.search(
+        a.Time(start_date, end_date),
+        a.Instrument.hmi,
+        a.Physobs.los_magnetic_field,
+        a.Sample(int(cadance) * u.hour),
+    )
+    n_found = sum(len(block) for block in results)
+    files = Fido.fetch(results, path=images_path)
+    if n_found != len(files):
+        raise RuntimeError(f'{n_found} files found, {len(files)} downloaded')
+    hek_client = hek.HEKClient()
 
     ars = []
     times = []
@@ -34,7 +37,7 @@ def main():
     for file in tqdm(files):
         magnetogram = Map(file)
         observer = magnetogram.observer_coordinate
-        os.rename(file, os.path.join(images_path, f"{str(magnetogram.date)}.fits"))
+        # os.rename(file, os.path.join(images_path, f"{str(magnetogram.date)}.fits"))
         times.append(str(magnetogram.date))
         active_regions = get_noaa_active_regions(hek_client, magnetogram.date)
         rectangles = dict()
