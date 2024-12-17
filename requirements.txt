@@ -72,7 +72,6 @@ jsonschema-specifications==2024.10.1
 jupyter_client==8.6.3
 jupyter_core==5.7.2
 kiwisolver==1.4.7
-lap==0.5.dev0
 lazy_loader==0.4
 locket==1.0.0
 loguru==0.7.2
