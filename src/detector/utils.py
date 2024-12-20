@@ -35,28 +35,6 @@ def preprocess_log_minmax(los_magnetogram, size=4096):
     return final
 
 
-ANCHORS = np.array(
-    [
-        [
-            [89.75458716, 106.92431193],
-            [174.64, 158.47703704],
-            [289.96757458, 187.5693904],
-        ],
-        [
-            [221.38817481, 271.33161954],
-            [358.9468599, 263.64251208],
-            [500.21971253, 321.72689938],
-        ],
-        [
-            [372.8490566, 432.9509434],
-            [639.91686461, 471.93349169],
-            [961.578125, 637.625],
-        ],
-    ],
-    dtype=np.float32,
-)
-
-
 class YOLOLoss(nn.Module):
     def __init__(self):
         super().__init__()
@@ -87,7 +65,7 @@ class YOLOLoss(nn.Module):
         return box_loss + object_loss + no_object_loss
 
 
-class DatasetNew(torch.utils.data.Dataset):
+class Dataset(torch.utils.data.Dataset):
     def __init__(
         self,
         images_dir,
