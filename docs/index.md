@@ -12,3 +12,5 @@
 [4. Tracking - DeepSORT (Questions)](4.md)
 
 [5. Dataset - pt 1](5.md)
+
+[6. Dataset - pt 1 & Preliminary Detection](6.md)
