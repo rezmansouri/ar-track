@@ -33,7 +33,7 @@ def main():
 
     ars = []
     times = []
-    print('Writing magnetograms and finding ARs')
+    print('Finding ARs')
     for file in tqdm(files):
         magnetogram = Map(file)
         observer = magnetogram.observer_coordinate
