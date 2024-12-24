@@ -28,13 +28,16 @@ def main():
     n_found = sum(len(block) for block in results)
     files = Fido.fetch(results, path=images_path)
     if n_found != len(files):
-        raise RuntimeError(f'{n_found} files found, {len(files)} downloaded')
+        print(f'{n_found} files found, {len(files)} downloaded')
     hek_client = hek.HEKClient()
 
     ars = []
     times = []
     print('Finding ARs')
     for file in tqdm(files):
+        if 'err' in file:
+            os.remove(file)
+            continue
         magnetogram = Map(file)
         observer = magnetogram.observer_coordinate
         # os.rename(file, os.path.join(images_path, f"{str(magnetogram.date)}.fits"))
