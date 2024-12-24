@@ -4,6 +4,10 @@ from datetime import datetime
 
 
 def main():
+    merged_name = str(datetime.now())
+    os.mkdir(merged_name)
+    os.mkdir(os.path.join(merged_name, "images"))
+    os.mkdir(os.path.join(merged_name, "labels"))
     for folder in os.listdir("."):
         if "2024" in folder:
             images_path = os.path.join(folder, "images")
@@ -11,10 +15,6 @@ def main():
             images_names = sorted(os.listdir(images_path))
             labels_names = sorted(os.listdir(labels_path))
             if len(images_names) == len(labels_names) and len(images_names) != 0:
-                merged_name = str(datetime.now())
-                os.mkdir(merged_name)
-                os.mkdir(os.path.join(merged_name, "images"))
-                os.mkdir(os.path.join(merged_name, "labels"))
                 for image_name, label_name in zip(images_names, labels_names):
                     shutil.copy(
                         os.path.join(images_path, image_name),
