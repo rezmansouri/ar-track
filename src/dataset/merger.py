@@ -13,8 +13,8 @@ def main():
             if len(images_names) == len(labels_names) and len(images_names) != 0:
                 merged_name = str(datetime.now())
                 os.mkdir(merged_name)
-                os.mkdir(merged_name, "images")
-                os.mkdir(merged_name, "labels")
+                os.mkdir(os.path.join(merged_name, "images"))
+                os.mkdir(os.path.join(merged_name, "labels"))
                 for image_name, label_name in zip(images_names, labels_names):
                     shutil.copy(
                         os.path.join(images_path, image_name),
