@@ -8,8 +8,8 @@ def main():
         if "2024" in folder:
             images_path = os.path.join(folder, "images")
             labels_path = os.path.join(folder, "labels")
-            images_names = sorted(os.listdir(os.path.join(folder, images_path)))
-            labels_names = sorted(os.listdir(os.path.join(folder, labels_path)))
+            images_names = sorted(os.listdir(images_path))
+            labels_names = sorted(os.listdir(labels_path))
             if len(images_names) == len(labels_names) and len(images_names) != 0:
                 merged_name = str(datetime.now())
                 os.mkdir(merged_name)
