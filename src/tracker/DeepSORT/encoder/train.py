@@ -13,15 +13,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main():
     """empty"""
     train_dataset = utils.Dataset(
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/images",
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/labels.csv",
+        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/images",
+        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/labels",
     )
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
+    
+    dim = train_dataset.real_dim
 
     N_EPOCHS = 1
 
-    encoder = model.Encoder().to(device)
-    decoder = model.Decoder().to(device)
+    encoder = model.Encoder(input_dim=dim).to(device)
+    decoder = model.Decoder(input_dim=dim).to(device)
     params = list(encoder.parameters()) + list(decoder.parameters())
     optimizer = optim.Adam(params)
     criterion = torch.nn.BCELoss().to(device)
@@ -42,12 +44,9 @@ def main():
     )
 
     np.save(
-        os.path.join('.', "losses", "train.npy"),
+        "losses.npy",
         np.array(train_losses, dtype=np.float32),
     )
-    
-    torch.save(enc.state_dict(), f'enc.pth')
-    torch.save(dec.state_dict(), f'dec.pth')
 
 
 if __name__ == "__main__":

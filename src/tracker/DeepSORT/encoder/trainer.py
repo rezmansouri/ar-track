@@ -32,5 +32,9 @@ def fit(train_loader, enc, dec, loss_fn, optimizer, n_epochs, device):
 
         print(
             f"epoch {epoch:>3}\ttraining loss: {train_loss:0.5f}")
+        
+
+        torch.save(enc.state_dict(), f"enc-{epoch}.pth")
+        torch.save(dec.state_dict(), f"dec-{epoch}.pth")
 
     return train_losses, (enc, dec)

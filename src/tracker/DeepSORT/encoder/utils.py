@@ -1,45 +1,92 @@
-import os
 import torch
+import cv2 as cv
 import numpy as np
-from PIL import Image
+import pandas as pd
+from os import listdir
+from astropy.io import fits
+from os.path import join as path_join
+
+
+_mask_rad = 1950
+MASK = np.zeros((4096, 4096), dtype=np.uint8)
+cv.circle(MASK, (2048, 2048), _mask_rad, 1, thickness=-1)
+MASK = MASK.astype(bool)
+
+
+def closest_divisible_by_4(n):
+    if n % 4 == 0:
+        return n
+    else:
+        remainder = n % 4
+        lower = n - remainder
+        higher = lower + 4
+        return lower if (n - lower) <= (higher - n) else higher
+
+
+def preprocess_log_minmax(los_magnetogram, size=4096):
+    """
+    todo
+    """
+    nan_ix = np.isnan(los_magnetogram)
+    los_magnetogram[nan_ix] = np.average(los_magnetogram[~nan_ix])
+    biased_data = np.abs(los_magnetogram) + 1
+
+    log_scaled_data = np.log(biased_data)
+
+    log_scaled_data[los_magnetogram < 0] *= -1
+    final = np.zeros_like(los_magnetogram, dtype=np.float32)
+    x_min, x_max = log_scaled_data[MASK].min(), log_scaled_data[MASK].max()
+    final[MASK] = (log_scaled_data[MASK] - x_min) / (x_max - x_min)
+    if size != 4096:
+        final = np.array(final * 255, dtype=np.uint8)
+        final = cv.resize(final, (size, size), interpolation=cv.INTER_CUBIC)
+        final = np.array(final, dtype=np.float32) / 255
+    return final
+
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(
-        self, image_dir, labels_path, old_size=4096, new_size=1024, patch_dim=0.08294
+        self, image_dir, labels_path, old_size=4096, new_size=1024, dataset_size=10_000
     ):
-        real_dim = int(patch_dim * 1024)
-        self.half_dim = real_dim // 2
-        self.images = []
-        i = 1
-        with open(labels_path, "r", encoding="utf-8") as label_file:
-            label_file.readline()
-            line = label_file.readline()
-            while line:
-                image_name = str(i).zfill(6) + ".jpg"
-                image_path = os.path.join(image_dir, image_name)
-                image = (
-                    np.array(
-                        Image.open(image_path).resize((new_size, new_size)),
-                        dtype=np.float32,
-                    )
-                    / 255.0
+        w, h = [], []
+        label_names = sorted(listdir(labels_path))[:dataset_size]
+        for label_name in label_names:
+            df = pd.read_csv(path_join(labels_path, label_name))
+            for _, row in df.iterrows():
+                width, height = (
+                    row["width"],
+                    row["height"],
                 )
-                while line:
-                    ix, x1, y1, w, h = [a for a in line.split(",")]
-                    ix = int(ix)
-                    x1, y1, w, h = [float(a) / old_size for a in [x1, y1, w, h]]
-                    xx1, yy1 = int(x1 * new_size), int(y1 * new_size)
-                    xx, yy = int(xx1 + w * new_size / 2), int(yy1 + h * new_size / 2)
-                    self.images.append(
-                        image[
-                            yy - self.half_dim : yy + self.half_dim,
-                            xx - self.half_dim : xx + self.half_dim,
-                        ]
-                    )
-                    if ix != i:
-                        i += 1
-                        break
-                    line = label_file.readline()
+                w.append(width)
+                h.append(height)
+        mean_w, mean_h = np.mean(w), np.mean(h)
+        patch_dim = max(mean_h, mean_w) / old_size
+        self.real_dim = int(patch_dim * new_size)
+        if self.real_dim % 4 != 0:
+            self.real_dim = closest_divisible_by_4(self.real_dim)
+        print("patch size:", self.real_dim)
+        half_dim = self.real_dim // 2
+        self.images = []
+        image_names = sorted(listdir(image_dir))[:dataset_size]
+        for label_name, image_name in zip(label_names, image_names):
+            df = pd.read_csv(path_join(labels_path, label_name))
+            hdul = fits.open(path_join(image_dir, image_name))
+            data = hdul[1].data
+            image = preprocess_log_minmax(data, new_size)
+            for _, row in df.iterrows():
+                min_x, min_y, width, height = (
+                    int(row["min_x"] / old_size * new_size),
+                    int(row["min_y"] / old_size * new_size),
+                    int(row["width"] / old_size * new_size),
+                    int(row["height"] / old_size * new_size),
+                )
+                half_width, half_height = width // 2, height // 2
+                x, y = min_x + half_width, min_y + half_height
+                patch = image[y - half_dim : y + half_dim, x - half_dim : x + half_dim]
+                shape_0, shape_1 = patch.shape
+                if shape_0 != self.real_dim or shape_1 != self.real_dim:
+                    continue
+                self.images.append(patch)
 
     def __len__(self):
         return len(self.images)
@@ -51,6 +98,6 @@ class Dataset(torch.utils.data.Dataset):
 
 if __name__ == "__main__":
     dataset = Dataset(
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/images",
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/labels.csv",
+        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/images",
+        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/labels",
     )
