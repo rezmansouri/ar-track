@@ -9,7 +9,7 @@ def main():
     os.mkdir(os.path.join(merged_name, "images"))
     os.mkdir(os.path.join(merged_name, "labels"))
     for folder in os.listdir("."):
-        if "2024" in folder:
+        if "E" in folder:
             images_path = os.path.join(folder, "images")
             labels_path = os.path.join(folder, "labels")
             images_names = sorted(os.listdir(images_path))
