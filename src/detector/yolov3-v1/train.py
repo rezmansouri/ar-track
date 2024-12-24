@@ -58,7 +58,7 @@ def main():
 
     train_losses = []
     test_losses = []
-    for e in range(1, 21):
+    for e in range(1, 100):
         print("Epoch:", e)
         model.train()
         train_loss = training_loop(
