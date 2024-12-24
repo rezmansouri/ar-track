@@ -4,7 +4,6 @@ import cv2 as cv
 import numpy as np
 import pandas as pd
 import torch.nn as nn
-from PIL import Image
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches

@@ -1,37 +1,43 @@
 import os
 import torch
+import cv2 as cv
 import numpy as np
+import pandas as pd
 import torch.nn as nn
-from PIL import Image
+from astropy.io import fits
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-cmap = plt.get_cmap('hsv')
+cmap = plt.get_cmap("hsv")
 COLORS = [cmap(i) for i in np.linspace(0, 1, 200)]
 np.random.shuffle(COLORS)
 COLORS += COLORS + COLORS
 
+_mask_rad = 1950
+MASK = np.zeros((4096, 4096), dtype=np.uint8)
+cv.circle(MASK, (2048, 2048), _mask_rad, 1, thickness=-1)
+MASK = MASK.astype(bool)
 
-ANCHORS = np.array(
-    [
-        [
-            [89.75458716, 106.92431193],
-            [174.64, 158.47703704],
-            [289.96757458, 187.5693904],
-        ],
-        [
-            [221.38817481, 271.33161954],
-            [358.9468599, 263.64251208],
-            [500.21971253, 321.72689938],
-        ],
-        [
-            [372.8490566, 432.9509434],
-            [639.91686461, 471.93349169],
-            [961.578125, 637.625],
-        ],
-    ],
-    dtype=np.float32,
-)
+
+def preprocess_log_minmax(los_magnetogram, size=4096):
+    """
+    todo
+    """
+    nan_ix = np.isnan(los_magnetogram)
+    los_magnetogram[nan_ix] = np.average(los_magnetogram[~nan_ix])
+    biased_data = np.abs(los_magnetogram) + 1
+
+    log_scaled_data = np.log(biased_data)
+
+    log_scaled_data[los_magnetogram < 0] *= -1
+    final = np.zeros_like(los_magnetogram, dtype=np.float32)
+    x_min, x_max = log_scaled_data[MASK].min(), log_scaled_data[MASK].max()
+    final[MASK] = (log_scaled_data[MASK] - x_min) / (x_max - x_min)
+    if size != 4096:
+        final = np.array(final * 255, dtype=np.uint8)
+        final = cv.resize(final, (size, size), interpolation=cv.INTER_CUBIC)
+        final = np.array(final, dtype=np.float32) / 255
+    return final
 
 
 class YOLOLoss(nn.Module):
@@ -65,39 +71,31 @@ class YOLOLoss(nn.Module):
 
 
 class Dataset(torch.utils.data.Dataset):
-
     def __init__(
-        self,
-        image_dir,
-        labels_path,
-        anchors,
-        image_size=416,
-        grid_sizes=[13, 26, 52],
-        original_image_size=4096,
-        transform=None,
+        self, images_dir, labels_dir, anchors, image_size=4096, grid_sizes=[13, 26, 52]
     ):
-        labels = []
-        with open(labels_path, "r", encoding="utf-8") as label_file:
-            label_file.readline()
+        self.labels = []
+        label_names = sorted(os.listdir(labels_dir))
+        for label_name in label_names:
+            df = pd.read_csv(os.path.join(labels_dir, label_name))
             label = []
-            ix_prev = "1"
-            for line in label_file.readlines():
-                ix, x1, y1, w, h = [a for a in line.split(",")]
-                x1, y1, w, h = [float(a) / original_image_size for a in [x1, y1, w, h]]
-                x = x1 + w / 2
-                y = y1 + h / 2
-                if ix != ix_prev:
-                    labels.append(label)
-                    label = [[x, y, w, h]]
-                    ix_prev = ix
-                else:
-                    label.append([x, y, w, h])
-        self.labels = labels
-        self.image_dir = image_dir
-        self.transform = transform
+            for _, row in df.iterrows():
+                min_x, min_y, width, height = (
+                    row["min_x"],
+                    row["min_y"],
+                    row["width"],
+                    row["height"],
+                )
+                center_x, center_y = min_x + width / 2, min_y + height / 2
+                label.append(
+                    (center_x / 4096, center_y / 4096, width / 4096, height / 4096)
+                )
+            self.labels.append(label)
+        self.images_dir = images_dir
+        self.images_names = sorted(os.listdir(images_dir))
         self.image_size = image_size
         self.grid_sizes = grid_sizes
-        self.anchors = anchors.reshape(-1, 2) / original_image_size
+        self.anchors = anchors.reshape(-1, 2)
         self.num_anchors = self.anchors.shape[0]
         self.num_anchors_per_scale = self.num_anchors // 3
         self.ignore_iou_thresh = 0.5
@@ -106,22 +104,15 @@ class Dataset(torch.utils.data.Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.image_dir, str(idx + 1).zfill(6) + ".jpg")
-        image = (
-            np.array(
-                Image.open(img_path).resize((self.image_size, self.image_size)),
-                dtype=np.float32,
-            )
-            / 255.0
-        )
+        img_path = os.path.join(self.images_dir, self.images_names[idx])
+        hdul = fits.open(img_path)
+        data = hdul[1].data
+        image = preprocess_log_minmax(data, self.image_size)
+        image = np.expand_dims(image, 0)
         targets = [
             torch.zeros((self.num_anchors_per_scale, s, s, 5)) for s in self.grid_sizes
         ]
         bboxes = self.labels[idx]
-        if self.transform:
-            augs = self.transform(image=image, bboxes=bboxes)
-            image = augs["image"]
-            bboxes = augs["bboxes"]
         for box in bboxes:
             iou_anchors = iou(torch.tensor(box[2:4]), self.anchors, is_pred=False)
             anchor_indices = iou_anchors.argsort(descending=True, dim=0)

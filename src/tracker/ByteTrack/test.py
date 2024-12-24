@@ -1,7 +1,7 @@
 import os
 from tqdm import tqdm
 from byte import BYTETracker
-from utils import ANCHORS, nms, save_image, convert_cells_to_bboxes
+from utils import nms, save_image, convert_cells_to_bboxes, preprocess_log_minmax
 from models import YOLOv3
 import torch
 import argparse
@@ -105,50 +105,6 @@ def main():
             writer.append_data(frame)
 
     print(f"Video saved as {output_filename}")
-
-    # image = np.array(Image.open('/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/images/000200.jpg').resize((1024, 1024)), dtype=np.float32) / 255
-    # x_1 = torch.tensor(image).unsqueeze(0).unsqueeze(0)
-
-    # with torch.no_grad():
-    #     yhat = model(x_1)
-
-    # boxes = []
-    # for i in range(3):
-    #     anchor = scaled_anchors[i]
-    #     yy = yhat[i]
-    #     boxes += convert_cells_to_bboxes(
-    #             yy, is_predictions=True, s=yhat[i].shape[2], anchors=anchor)[0]
-    # boxes_1 = nms(boxes, iou_threshold=.3, threshold=.7)
-    # plot_image(x_1[0][0], boxes_1, '1')
-
-    # image = np.array(Image.open('/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/images/000202.jpg').resize((1024, 1024)), dtype=np.float32) / 255
-    # x_2 = torch.tensor(image).unsqueeze(0).unsqueeze(0)
-
-    # with torch.no_grad():
-    #     yhat = model(x_2)
-
-    # boxes = []
-    # for i in range(3):
-    #     anchor = scaled_anchors[i]
-    #     yy = yhat[i]
-    #     boxes += convert_cells_to_bboxes(
-    #             yy, is_predictions=True, s=yhat[i].shape[2], anchors=anchor)[0]
-    # boxes_2 = nms(boxes, iou_threshold=.3, threshold=.7)
-    # plot_image(x_2[0][0], boxes_2, '2')
-
-    # # TRACKING
-    # tracker = Sort()
-    # boxes_1 = np.array(boxes_1)
-    # boxes_1[:, [0, 4]] = boxes_1[:, [4, 0]]
-    # boxes_1[:, 2:4] += boxes_1[:, 1:3]
-    # boxes_2 = np.array(boxes_2)
-    # boxes_2[:, 2:4] += boxes_2[:, 1:3]
-    # boxes_2[:, [0, 4]] = boxes_2[:, [4, 0]]
-
-    # trks = tracker.update(boxes_1)
-    # print(trks)
-    # trks = tracker.update(boxes_2)
-    # print(trks)
 
 
 if __name__ == "__main__":

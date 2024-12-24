@@ -3,10 +3,10 @@ from tqdm import tqdm
 from deep_sort import nn_matching
 from deep_sort.detection import Detection
 from deep_sort.tracker import Tracker
-from utils import ANCHORS, nms, save_image, convert_cells_to_bboxes
+from utils import nms, save_image, convert_cells_to_bboxes, preprocess_log_minmax
 from models import YOLOv3
 import torch
-from PIL import Image
+from astropy.io import fits
 import numpy as np
 from io import BytesIO
 import imageio.v2 as imageio
@@ -17,29 +17,37 @@ device = torch.device("cpu")
 
 
 def main(max_cosine_distance, nn_budget):
+
+    yolo_path = "/Users/reza/Career/DMLab/AR TRACKING/ar-track/yolov3-13.pth"
+    encoder_path = "/Users/reza/Career/DMLab/AR TRACKING/ar-track/src/tracker/DeepSORT/enc-200.pth"
+    anchor_path = "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/anchors.npy"
+    images_path = "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/images"
+
     model = YOLOv3()
     state = torch.load(
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/src/yolo_v3.pth",
+        yolo_path,
         weights_only=True,
         map_location=device,
     )
     model.load_state_dict(state)
+    
+    real_dim = 76
 
-    encoder = encoder_models.Encoder()
+    encoder = encoder_models.Encoder(input_dim=real_dim)
     state = torch.load(
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/src/tracker/DeepSORT/enc.pth",
+        encoder_path,
         weights_only=True,
         map_location=device,
     )
     encoder.load_state_dict(state)
 
+    MAG_SIZE = 4096
     IMAGE_SIZE = 1024
     GRID_SIZES = [IMAGE_SIZE // 32, IMAGE_SIZE // 16, IMAGE_SIZE // 8]
-    PATCH_DIM = 0.08294
-    real_dim = int(PATCH_DIM * 1024)
     half_dim = real_dim // 2
 
-    scaled_anchors = torch.tensor(ANCHORS) * torch.tensor(GRID_SIZES).unsqueeze(
+    anchors = np.load(anchor_path) / MAG_SIZE
+    scaled_anchors = torch.tensor(anchors) * torch.tensor(GRID_SIZES).unsqueeze(
         1
     ).unsqueeze(1).repeat(1, 3, 2)
 
@@ -49,26 +57,11 @@ def main(max_cosine_distance, nn_budget):
     tracker = Tracker(metric)
 
     frames = []
-    for file in tqdm(
-        sorted(
-            os.listdir(
-                "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/images"
-            ),
-            key=lambda x: int(x[:-4]),
-        )[:250]
-    ):
-        image = (
-            np.array(
-                Image.open(
-                    os.path.join(
-                        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/AR-MOT/images",
-                        file,
-                    )
-                ).resize((1024, 1024)),
-                dtype=np.float32,
-            )
-            / 255
-        )
+    for file in tqdm(sorted(os.listdir(images_path))):
+        img_path = os.path.join(images_path, file)
+        hdul = fits.open(img_path)
+        data = hdul[1].data
+        image = preprocess_log_minmax(data, IMAGE_SIZE)
         x = torch.tensor(image).unsqueeze(0).unsqueeze(0)
 
         with torch.no_grad():
@@ -94,17 +87,17 @@ def main(max_cosine_distance, nn_budget):
                 xx, yy = box[0] + box[2] // 2, box[1] + box[3] // 2
                 xx, yy = int(xx * IMAGE_SIZE), int(yy * IMAGE_SIZE)
                 real_obj = x[
-                    :,
-                    :,
-                    yy - half_dim : yy + half_dim,
-                    xx - half_dim : xx + half_dim
+                    :, :, yy - half_dim : yy + half_dim, xx - half_dim : xx + half_dim
                 ]
                 if real_obj.shape[2] != real_dim or real_obj.shape[3] != real_dim:
                     continue
                 feat = encoder(real_obj)[0]
                 feats.append(feat)
                 final_boxes.append(box)
-            dets = [Detection(b[:4], b[4], feats[i].detach().numpy()) for i, b in enumerate(final_boxes)]
+            dets = [
+                Detection(b[:4], b[4], feats[i].detach().numpy())
+                for i, b in enumerate(final_boxes)
+            ]
 
             tracker.predict()
             tracker.update(dets)
@@ -114,7 +107,7 @@ def main(max_cosine_distance, nn_budget):
             frames.append(imageio.imread(buf))
 
     output_filename = f"out.mp4"
-    fps = 20  # Adjust frames per second as needed
+    fps = 7  # Adjust frames per second as needed
 
     # Create video directly from frames in memory
     with imageio.get_writer(output_filename, fps=fps) as writer:
