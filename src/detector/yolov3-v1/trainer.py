@@ -1,7 +1,7 @@
 from tqdm import tqdm
 
-def training_loop(loader, model, optimizer, loss_fn, scaled_anchors, device):
-    progress_bar = tqdm(loader, leave=True)
+def training_loop(train_loader, model, optimizer, loss_fn, scaled_anchors, device):
+    progress_bar = tqdm(train_loader, leave=True)
 
     losses = []
 
@@ -31,3 +31,4 @@ def training_loop(loader, model, optimizer, loss_fn, scaled_anchors, device):
 
         mean_loss = sum(losses) / len(losses)
         progress_bar.set_postfix(loss=mean_loss)
+    return mean_loss
