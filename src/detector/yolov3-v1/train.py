@@ -3,6 +3,7 @@ import sys
 import torch
 import numpy as np
 from models import YOLOv3
+from datetime import datetime
 from trainer import training_loop
 from utils import Dataset, YOLOLoss
 
@@ -14,6 +15,7 @@ GRID_SIZES = [IMAGE_SIZE // 32, IMAGE_SIZE // 16, IMAGE_SIZE // 8]
 
 
 def main():
+
     data_path = sys.argv[1]
     train_path = os.path.join(data_path, "train")
     test_path = os.path.join(data_path, "test")
@@ -56,6 +58,10 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = YOLOLoss().to(device)
 
+    result_path = str(datetime.now())
+    os.mkdir(result_path)
+    os.mkdir(os.path.join(result_path, "states"))
+
     train_losses = []
     test_losses = []
     for e in range(1, 100):
@@ -84,7 +90,10 @@ def main():
         train_losses.append(train_loss)
         test_losses.append(sum(test_loss) / len(test_loss))
 
-        torch.save(model.state_dict(), f"{e}.pth")
+        torch.save(model.state_dict(), os.path.join(result_path, "states", f"{e}.pth"))
+
+    np.save(os.path.join(result_path, "train_loss.npy"), np.array(train_losses))
+    np.save(os.path.join(result_path, "test_loss.npy"), np.array(test_losses))
 
 
 if __name__ == "__main__":
