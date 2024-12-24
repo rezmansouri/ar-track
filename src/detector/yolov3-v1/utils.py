@@ -101,7 +101,6 @@ class Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         img_path = os.path.join(self.images_dir, self.images_names[idx])
-        print(img_path)
         hdul = fits.open(img_path)
         data = hdul[1].data
         image = preprocess_log_minmax(data, self.image_size)
