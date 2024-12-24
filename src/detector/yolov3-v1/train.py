@@ -10,7 +10,7 @@ from utils import Dataset, YOLOLoss
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 MAG_SIZE = 4096
-IMAGE_SIZE = 2048
+IMAGE_SIZE = 1024
 GRID_SIZES = [IMAGE_SIZE // 32, IMAGE_SIZE // 16, IMAGE_SIZE // 8]
 
 
@@ -48,7 +48,7 @@ def main():
         * torch.tensor(GRID_SIZES).unsqueeze(1).unsqueeze(1).repeat(1, 3, 2)
     ).to(device)
 
-    batch_size = 4
+    batch_size = 8
 
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size, shuffle=True)
 
@@ -91,9 +91,11 @@ def main():
         test_losses.append(sum(test_loss) / len(test_loss))
 
         torch.save(model.state_dict(), os.path.join(result_path, "states", f"{e}.pth"))
-
-    np.save(os.path.join(result_path, "train_loss.npy"), np.array(train_losses))
-    np.save(os.path.join(result_path, "test_loss.npy"), np.array(test_losses))
+        if e != 1:
+            os.remove(os.path.join(result_path, "train_loss.npy"))
+            os.remove(os.path.join(result_path, "test_loss.npy"))
+        np.save(os.path.join(result_path, "train_loss.npy"), np.array(train_losses))
+        np.save(os.path.join(result_path, "test_loss.npy"), np.array(test_losses))
 
 
 if __name__ == "__main__":
