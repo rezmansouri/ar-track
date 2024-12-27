@@ -16,7 +16,7 @@ GRID_SIZES = [IMAGE_SIZE // 32, IMAGE_SIZE // 16, IMAGE_SIZE // 8]
 
 
 def main():
-    state_path = "/Users/reza/Career/DMLab/AR TRACKING/ar-track/src/4.pth"
+    state_path = "9.pth"
     anchors_path = "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/anchors.npy"
     images_path = (
         "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/images"
@@ -33,7 +33,7 @@ def main():
         1
     ).unsqueeze(1).repeat(1, 3, 2)
 
-    thresh, io_thresh = 0.1, 0.3
+    thresh, io_thresh = 0.7, 0.1
 
     frames = []
     for file in tqdm(sorted(os.listdir(images_path))):

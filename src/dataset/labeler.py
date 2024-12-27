@@ -10,37 +10,23 @@ from sunpy.net import Fido, hek, attrs as a
 
 
 def main():
-    start_date, end_date, cadance = sys.argv[1:]
+    images_path = sys.argv[1]
     time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    data_path = os.path.join(".", f"{time}-S{start_date}E{end_date}C{cadance}")
-    images_path = os.path.join(data_path, "images")
-    labels_path = os.path.join(data_path, "labels")
-    os.mkdir(data_path)
-    os.mkdir(images_path)
+    labels_path = os.path.join(images_path, "..", f"labels-{time}")
     os.mkdir(labels_path)
-    # cadance 4 is preferred
-    results = Fido.search(
-        a.Time(start_date, end_date),
-        a.Instrument.hmi,
-        a.Physobs.los_magnetic_field,
-        a.Sample(int(cadance) * u.hour),
-    )
-    n_found = sum(len(block) for block in results)
-    files = Fido.fetch(results, path=images_path)
-    if n_found != len(files):
-        print(f"{n_found} files found, {len(files)} downloaded")
+    images_names = sorted(os.listdir(images_path))
     hek_client = hek.HEKClient()
 
     ars = []
     times = []
     print("Finding ARs")
-    for file in tqdm(files):
+    for file in tqdm(images_names):
+        image_path = os.path.join(images_path, file)
         if "err" in file:
-            os.remove(file)
+            os.remove(image_path)
             continue
-        magnetogram = Map(file)
+        magnetogram = Map(image_path)
         observer = magnetogram.observer_coordinate
-        # os.rename(file, os.path.join(images_path, f"{str(magnetogram.date)}.fits"))
         times.append(str(magnetogram.date))
         active_regions = get_noaa_active_regions(hek_client, magnetogram.date)
         rectangles = dict()
@@ -112,7 +98,7 @@ def get_noaa_active_regions(client, magnetogram_time):
         a.Time(magnetogram_time, magnetogram_time + 1 * u.minute),
         hek.attrs.EventType("AR"),
     )
-    filtered = [ar for ar in active_regions if ar.get('obs_instrument') == 'HMI']
+    filtered = [ar for ar in active_regions if ar.get("obs_instrument") == "HMI"]
     return filtered
 
 
