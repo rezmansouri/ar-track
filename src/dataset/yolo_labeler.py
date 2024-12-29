@@ -18,7 +18,7 @@ def main():
             "w",
             encoding="utf-8",
         ) as txt_label:
-            for row in df.iterrows():
+            for _, row in df.iterrows():
                 min_x, min_y, width, height = (
                     row["min_x"],
                     row["min_y"],
