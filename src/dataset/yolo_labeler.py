@@ -9,6 +9,7 @@ def main():
     hek_labels_names = os.listdir(hek_labels_path)
     now = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     new_labels_path = os.path.join(hek_labels_path, "..", f"{now}-yolo-labels")
+    os.mkdir(new_labels_path)
     for hek_label_name in hek_labels_names:
         df = pd.read_csv(os.path.join(hek_labels_path, hek_label_name))
         if len(df) == 0:
