@@ -40,9 +40,11 @@ def main():
             continue
         magnetogram = Map(file)
         observer = magnetogram.observer_coordinate
-        # os.rename(file, os.path.join(images_path, f"{str(magnetogram.date)}.fits"))
         times.append(str(magnetogram.date))
         active_regions = get_noaa_active_regions(hek_client, magnetogram.date)
+        if len(active_regions) == 0:
+            os.remove(file)
+            continue
         rectangles = dict()
         for region in active_regions:
             if region["ar_noaanum"] is None:
