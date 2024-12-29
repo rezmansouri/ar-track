@@ -29,7 +29,7 @@ def main():
                 center_x, center_y, min_x, min_y = [
                     i / 4096 for i in [center_x, center_y, width, height]
                 ]
-                txt_label.write(f"0 {center_x} {center_y} {width} {height}")
+                txt_label.write(f"0 {center_x} {center_y} {width} {height}\n")
 
 
 if __name__ == "__main__":
