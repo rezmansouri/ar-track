@@ -13,7 +13,7 @@ def main():
     for hek_label_name in hek_labels_names:
         df = pd.read_csv(os.path.join(hek_labels_path, hek_label_name))
         if len(df) == 0:
-            pass
+            continue
         with open(
             os.path.join(new_labels_path, hek_label_name[:-3] + "txt"),
             "w",
