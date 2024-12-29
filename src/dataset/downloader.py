@@ -103,8 +103,10 @@ def main():
             label_dict["min_y"].append(min_y)
             label_dict["width"].append(width)
             label_dict["height"].append(height)
+        if len(label_dict["ar_noaanum"]) == 0:
+            continue
         df = pd.DataFrame(label_dict)
-        df.to_csv(os.path.join(labels_path, f"{timee}.csv"))
+        df.to_csv(os.path.join(labels_path, f"{timee}.csv", index=False))
 
 
 def get_noaa_active_regions(client, magnetogram_time):
@@ -112,7 +114,7 @@ def get_noaa_active_regions(client, magnetogram_time):
         a.Time(magnetogram_time, magnetogram_time + 1 * u.minute),
         hek.attrs.EventType("AR"),
     )
-    filtered = [ar for ar in active_regions if ar.get('obs_instrument') == 'HMI']
+    filtered = [ar for ar in active_regions if ar.get("obs_instrument") == "HMI"]
     return filtered
 
 

@@ -309,40 +309,40 @@ class YOLO(torch.nn.Module):
 def yolo_v11_n():
     csp = [False, True]
     depth = [1, 1, 1, 1, 1, 1]
-    width = [3, 16, 32, 64, 128, 256]
+    width = [1, 16, 32, 64, 128, 256]
     return YOLO(width, depth, csp)
 
 
 def yolo_v11_t():
     csp = [False, True]
     depth = [1, 1, 1, 1, 1, 1]
-    width = [3, 24, 48, 96, 192, 384]
+    width = [1, 24, 48, 96, 192, 384]
     return YOLO(width, depth, csp)
 
 
 def yolo_v11_s():
     csp = [False, True]
     depth = [1, 1, 1, 1, 1, 1]
-    width = [3, 32, 64, 128, 256, 512]
+    width = [1, 32, 64, 128, 256, 512]
     return YOLO(width, depth, csp)
 
 
 def yolo_v11_m():
     csp = [True, True]
     depth = [1, 1, 1, 1, 1, 1]
-    width = [3, 64, 128, 256, 512, 512]
+    width = [1, 64, 128, 256, 512, 512]
     return YOLO(width, depth, csp)
 
 
 def yolo_v11_l():
     csp = [True, True]
     depth = [2, 2, 2, 2, 2, 2]
-    width = [3, 64, 128, 256, 512, 512]
+    width = [1, 64, 128, 256, 512, 512]
     return YOLO(width, depth, csp)
 
 
 def yolo_v11_x():
     csp = [True, True]
     depth = [2, 2, 2, 2, 2, 2]
-    width = [3, 96, 192, 384, 768, 768]
+    width = [1, 96, 192, 384, 768, 768]
     return YOLO(width, depth, csp)

@@ -89,8 +89,10 @@ def main():
             label_dict["min_y"].append(min_y)
             label_dict["width"].append(width)
             label_dict["height"].append(height)
+        if len(label_dict["ar_noaanum"]) == 0:
+            continue
         df = pd.DataFrame(label_dict)
-        df.to_csv(os.path.join(labels_path, f"{timee}.csv"))
+        df.to_csv(os.path.join(labels_path, f"{timee}.csv", index=False))
 
 
 def get_noaa_active_regions(client, magnetogram_time):
