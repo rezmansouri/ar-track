@@ -40,12 +40,15 @@ def convert(fits_path, jpg_path):
 
 
 def main():
-    fits_paths = sys.argv[1]
+    fits_paths, labels_path = sys.argv[1], sys.argv[2]
     fits_names = os.listdir(fits_paths)
     time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     jpgs_paths = os.path.join(fits_paths, "..", f"jpg-{time}")
     os.mkdir(jpgs_paths)
     for fits_name in tqdm(fits_names):
+        label_path = os.path.join(labels_path, fits_name[:-4] + "csv")
+        if not os.path.exists(label_path):
+            continue
         fits_path = os.path.join(fits_paths, fits_name)
         jpg_path = os.path.join(jpgs_paths, fits_name[:-4] + "jpg")
         convert(fits_path, jpg_path)
