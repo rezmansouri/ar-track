@@ -40,7 +40,7 @@ def convert(fits_path, jpg_path):
 
 
 def main():
-    fits_paths = sys.argv1[1]
+    fits_paths = sys.argv[1]
     fits_names = os.listdir(fits_paths)
     time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     jpgs_paths = os.path.join(fits_paths, "..", f"jpg-{time}")
