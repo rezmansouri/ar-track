@@ -12,7 +12,7 @@ from sunpy.net import Fido, hek, attrs as a
 def main():
     images_path = sys.argv[1]
     time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    labels_path = os.path.join(images_path, "..", f"labels-{time}")
+    labels_path = os.path.join(images_path, "..", f"labels-sharp-{time}")
     os.mkdir(labels_path)
     images_names = sorted(os.listdir(images_path))
     hek_client = hek.HEKClient()

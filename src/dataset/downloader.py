@@ -40,8 +40,10 @@ def main():
             continue
         magnetogram = Map(file)
         observer = magnetogram.observer_coordinate
-        times.append(str(magnetogram.date))
-        active_regions = get_noaa_active_regions(hek_client, magnetogram.date)
+        mag_time = magnetogram.date
+        os.rename(file, os.path.join(images_path, str(mag_time)) + '.fits')
+        times.append(str(mag_time))
+        active_regions = get_noaa_active_regions(hek_client, mag_time)
         if len(active_regions) == 0:
             os.remove(file)
             continue
