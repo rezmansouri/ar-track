@@ -44,6 +44,7 @@ def main():
     fits_names = os.listdir(fits_paths)
     time = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     jpgs_paths = os.path.join(fits_paths, "..", f"jpg-{time}")
+    os.mkdir(jpgs_paths)
     for fits_name in tqdm(fits_names):
         fits_path = os.path.join(fits_paths, fits_name)
         jpg_path = os.path.join(jpgs_paths, fits_name[:-4] + "jpg")
