@@ -1,5 +1,6 @@
 import torch
 
+
 def make_anchors(x, strides, offset=0.5):
     assert x is not None
     anchor_tensor, stride_tensor = [], []
@@ -15,20 +16,32 @@ def make_anchors(x, strides, offset=0.5):
 
 
 def fuse_conv(conv, norm):
-    fused_conv = torch.nn.Conv2d(conv.in_channels,
-                                 conv.out_channels,
-                                 kernel_size=conv.kernel_size,
-                                 stride=conv.stride,
-                                 padding=conv.padding,
-                                 groups=conv.groups,
-                                 bias=True).requires_grad_(False).to(conv.weight.device)
+    fused_conv = (
+        torch.nn.Conv2d(
+            conv.in_channels,
+            conv.out_channels,
+            kernel_size=conv.kernel_size,
+            stride=conv.stride,
+            padding=conv.padding,
+            groups=conv.groups,
+            bias=True,
+        )
+        .requires_grad_(False)
+        .to(conv.weight.device)
+    )
 
     w_conv = conv.weight.clone().view(conv.out_channels, -1)
     w_norm = torch.diag(norm.weight.div(torch.sqrt(norm.eps + norm.running_var)))
     fused_conv.weight.copy_(torch.mm(w_norm, w_conv).view(fused_conv.weight.size()))
 
-    b_conv = torch.zeros(conv.weight.size(0), device=conv.weight.device) if conv.bias is None else conv.bias
-    b_norm = norm.bias - norm.weight.mul(norm.running_mean).div(torch.sqrt(norm.running_var + norm.eps))
+    b_conv = (
+        torch.zeros(conv.weight.size(0), device=conv.weight.device)
+        if conv.bias is None
+        else conv.bias
+    )
+    b_norm = norm.bias - norm.weight.mul(norm.running_mean).div(
+        torch.sqrt(norm.running_var + norm.eps)
+    )
     fused_conv.bias.copy_(torch.mm(w_norm, b_conv.reshape(-1, 1)).reshape(-1) + b_norm)
 
     return fused_conv
@@ -64,8 +77,9 @@ class CSPModule(torch.nn.Module):
         self.conv1 = Conv(in_ch, out_ch // 2, torch.nn.SiLU())
         self.conv2 = Conv(in_ch, out_ch // 2, torch.nn.SiLU())
         self.conv3 = Conv(2 * (out_ch // 2), out_ch, torch.nn.SiLU())
-        self.res_m = torch.nn.Sequential(Residual(out_ch // 2, e=1.0),
-                                         Residual(out_ch // 2, e=1.0))
+        self.res_m = torch.nn.Sequential(
+            Residual(out_ch // 2, e=1.0), Residual(out_ch // 2, e=1.0)
+        )
 
     def forward(self, x):
         y = self.res_m(self.conv1(x))
@@ -81,7 +95,9 @@ class CSP(torch.nn.Module):
         if not csp:
             self.res_m = torch.nn.ModuleList(Residual(out_ch // r) for _ in range(n))
         else:
-            self.res_m = torch.nn.ModuleList(CSPModule(out_ch // r, out_ch // r) for _ in range(n))
+            self.res_m = torch.nn.ModuleList(
+                CSPModule(out_ch // r, out_ch // r) for _ in range(n)
+            )
 
     def forward(self, x):
         y = list(self.conv1(x).chunk(2, 1))
@@ -110,7 +126,7 @@ class Attention(torch.nn.Module):
         self.num_head = num_head
         self.dim_head = ch // num_head
         self.dim_key = self.dim_head // 2
-        self.scale = self.dim_key ** -0.5
+        self.scale = self.dim_key**-0.5
 
         self.qkv = Conv(ch, ch + self.dim_key * num_head * 2, torch.nn.Identity())
 
@@ -128,7 +144,9 @@ class Attention(torch.nn.Module):
         attn = (q.transpose(-2, -1) @ k) * self.scale
         attn = attn.softmax(dim=-1)
 
-        x = (v @ attn.transpose(-2, -1)).view(b, c, h, w) + self.conv1(v.reshape(b, c, h, w))
+        x = (v @ attn.transpose(-2, -1)).view(b, c, h, w) + self.conv1(
+            v.reshape(b, c, h, w)
+        )
         return self.conv2(x)
 
 
@@ -137,8 +155,9 @@ class PSABlock(torch.nn.Module):
     def __init__(self, ch, num_head):
         super().__init__()
         self.conv1 = Attention(ch, num_head)
-        self.conv2 = torch.nn.Sequential(Conv(ch, ch * 2, torch.nn.SiLU()),
-                                         Conv(ch * 2, ch, torch.nn.Identity()))
+        self.conv2 = torch.nn.Sequential(
+            Conv(ch, ch * 2, torch.nn.SiLU()), Conv(ch * 2, ch, torch.nn.Identity())
+        )
 
     def forward(self, x):
         x = x + self.conv1(x)
@@ -150,7 +169,9 @@ class PSA(torch.nn.Module):
         super().__init__()
         self.conv1 = Conv(ch, 2 * (ch // 2), torch.nn.SiLU())
         self.conv2 = Conv(2 * (ch // 2), ch, torch.nn.SiLU())
-        self.res_m = torch.nn.Sequential(*(PSABlock(ch // 2, ch // 128) for _ in range(n)))
+        self.res_m = torch.nn.Sequential(
+            *(PSABlock(ch // 2, ch // 128) for _ in range(n))
+        )
 
     def forward(self, x):
         x, y = self.conv1(x).chunk(2, 1)
@@ -224,7 +245,9 @@ class DFL(torch.nn.Module):
     def __init__(self, ch=16):
         super().__init__()
         self.ch = ch
-        self.conv = torch.nn.Conv2d(ch, out_channels=1, kernel_size=1, bias=False).requires_grad_(False)
+        self.conv = torch.nn.Conv2d(
+            ch, out_channels=1, kernel_size=1, bias=False
+        ).requires_grad_(False)
         x = torch.arange(ch, dtype=torch.float).view(1, ch, 1, 1)
         self.conv.weight.data[:] = torch.nn.Parameter(x)
 
@@ -252,8 +275,9 @@ class Head(torch.nn.Module):
             torch.nn.Sequential(
                 Conv(x, box, torch.nn.SiLU(), k=3, p=1),
                 Conv(box, box, torch.nn.SiLU(), k=3, p=1),
-                torch.nn.Conv2d(box, out_channels=4 * self.ch, kernel_size=1)
-            ) for x in filters
+                torch.nn.Conv2d(box, out_channels=4 * self.ch, kernel_size=1),
+            )
+            for x in filters
         )
 
     def forward(self, x):
@@ -262,7 +286,9 @@ class Head(torch.nn.Module):
         if self.training:
             return x
 
-        self.anchors, self.strides = (i.transpose(0, 1) for i in make_anchors(x, self.stride))
+        self.anchors, self.strides = (
+            i.transpose(0, 1) for i in make_anchors(x, self.stride)
+        )
         x = torch.cat([i.view(x[0].shape[0], self.no, -1) for i in x], dim=2)
 
         a, b = self.dfl(x).chunk(2, 1)
@@ -288,7 +314,9 @@ class YOLO(torch.nn.Module):
 
         img_dummy = torch.zeros(1, width[0], 256, 256)
         self.head = Head((width[3], width[4], width[5]))
-        self.head.stride = torch.tensor([256 / x.shape[-2] for x in self.forward(img_dummy)])
+        self.head.stride = torch.tensor(
+            [256 / x.shape[-2] for x in self.forward(img_dummy)]
+        )
         self.stride = self.head.stride
         self.head.initialize_biases()
 
@@ -299,10 +327,10 @@ class YOLO(torch.nn.Module):
 
     def fuse(self):
         for m in self.modules():
-            if type(m) is Conv and hasattr(m, 'norm'):
+            if type(m) is Conv and hasattr(m, "norm"):
                 m.conv = fuse_conv(m.conv, m.norm)
                 m.forward = m.fuse_forward
-                delattr(m, 'norm')
+                delattr(m, "norm")
         return self
 
 
