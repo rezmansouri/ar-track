@@ -3,10 +3,16 @@ from ultralytics import YOLO
 
 
 def main():
-    image_size, batch_size, scale = int(sys.argv[1]), int(sys.argv[2]), sys.argv[3]
+    image_size, batch_size, scale, devices = (
+        int(sys.argv[1]),
+        int(sys.argv[2]),
+        sys.argv[3],
+        sys.argv[4],
+    )
+    devices = [int(d) for d in devices]
     model = YOLO(f"./yolo11{scale}.yaml")
     model.train(
-        data="dummy_data.yaml",
+        data="hek.yaml",
         batch=batch_size,
         val=True,
         plots=True,
@@ -35,6 +41,7 @@ def main():
         auto_augment=False,
         erasing=0,
         crop_fraction=0,
+        device=devices,
     )
 
 
