@@ -48,8 +48,8 @@ def main():
         image = np.array(Image.open(image_path))
         result = model.predict(image_path, imgsz=image_size, device=devices, batch=1)[0]
         infer = result.boxes
-        probs = infer.conf
-        boxes = infer.xyxyn
+        probs = infer.conf.cpu().numpy()
+        boxes = infer.xyxyn.cpu().numpy()
         boxes_probs = np.hstack([boxes, probs])
         trks = tracker.update(boxes_probs)
         tracks = []
