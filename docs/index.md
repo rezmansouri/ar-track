@@ -16,3 +16,5 @@
 [6. Dataset - pt 1 & Preliminary Detection](6.md)
 
 [7. An experiment](7.md)
+
+[8. Another experiment - YOLOv11 - 2048 size - Augmented](8.md)
