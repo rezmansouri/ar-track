@@ -43,11 +43,10 @@ def main():
 
     tracker = BYTETracker(args)
 
-    results = model.predict(image_paths, imgsz=image_size, device=devices, batch=-1)
-
     frames = []
-    for image_path, result in tqdm(zip(image_paths, results)):
+    for image_path in tqdm(image_paths):
         image = np.array(Image.open(image_path))
+        result = model.predict(image_path, imgsz=image_size, device=devices, batch=1)[0]
         infer = result.boxes
         probs = infer.conf
         boxes = infer.xyxyn
@@ -60,9 +59,9 @@ def main():
         buf = BytesIO()
         buf = save_image(image, np.array(tracks), buf)
         frames.append(imageio.imread(buf))
-        
+
     output_filename = f"byte.mp4"
-    fps = 7  # Adjust frames per second as needed
+    fps = 10  # Adjust frames per second as needed
 
     # Create video directly from frames in memory
     with imageio.get_writer(output_filename, fps=fps) as writer:
