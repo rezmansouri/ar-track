@@ -1,0 +1,7 @@
+path: /home/rmansouri1/ar_track/data/HEK
+train: train
+val: val
+test:
+
+names:
+    0: ar

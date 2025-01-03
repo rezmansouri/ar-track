@@ -7,7 +7,7 @@ from astropy.io import fits
 from os.path import join as path_join
 
 
-_mask_rad = 1950
+_mask_rad = 1900
 MASK = np.zeros((4096, 4096), dtype=np.uint8)
 cv.circle(MASK, (2048, 2048), _mask_rad, 1, thickness=-1)
 MASK = MASK.astype(bool)
