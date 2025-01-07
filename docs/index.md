@@ -17,4 +17,6 @@
 
 [7. An experiment](7.md)
 
-[8. Another experiment - YOLOv11 - 2048 size - Augmented](8.md)
+[8. Another experiment - YOLOv11x - 2048 size - Augmented](8.md)
+
+[9. Another experiment - YOLOv11n&s - 2048 size - Augmented](9.md)
