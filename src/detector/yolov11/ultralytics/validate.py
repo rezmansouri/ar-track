@@ -39,10 +39,12 @@ def main():
                 "map50-95": [metrics.box.map],
                 "map50": [metrics.box.map50],
                 "map75": [metrics.box.map75],
-                "all-maps": [metrics.box.maps],
             }
             df = pd.DataFrame(result)
-            df.to_csv(f"./runs/detect/validation/{scale}/maps.csv", index=False)
+            df.to_csv(
+                f"./runs/detect/validation/{scale}/conf-{conf}-iou{iou}/maps.csv",
+                index=False,
+            )
 
 
 if __name__ == "__main__":
