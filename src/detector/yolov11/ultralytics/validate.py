@@ -1,3 +1,4 @@
+import os
 import sys
 from ultralytics import YOLO
 
@@ -13,6 +14,8 @@ def main():
     devices = [int(d) for d in devices]
     model = YOLO(state_path)
 
+    os.makedirs(f"./runs/validation/{scale}", exist_ok=True)
+
     iou_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
     conf_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
     for iou in iou_threshs:
@@ -27,9 +30,10 @@ def main():
                 plots=True,
                 split="val",
                 device=devices,
-                name=f"scale{scale}conf-{conf}-iou{iou}",
+                project=f"./runs/validation/{scale}",
+                name=f"conf-{conf}-iou{iou}",
             )
-            print(f"conf: {conf} iou: {iou} mAP50-95: {metrics.map}")
+            print(f"conf: {conf} iou: {iou} mAP50-95: {metrics.box.map}")
 
 
 if __name__ == "__main__":
