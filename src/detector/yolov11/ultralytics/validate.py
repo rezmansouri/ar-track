@@ -3,14 +3,15 @@ from ultralytics import YOLO
 
 
 def main():
-    image_size, batch_size, scale, devices = (
-        int(sys.argv[1]),
+    state_path, image_size, batch_size, scale, devices = (
+        sys.argv[1],
         int(sys.argv[2]),
-        sys.argv[3],
+        int(sys.argv[3]),
         sys.argv[4],
+        sys.argv[5],
     )
     devices = [int(d) for d in devices]
-    model = YOLO(f"./yolo11{scale}.yaml")
+    model = YOLO(state_path)
 
     iou_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
     conf_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
