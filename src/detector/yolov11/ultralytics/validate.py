@@ -1,5 +1,6 @@
 import os
 import sys
+import pandas as pd
 from ultralytics import YOLO
 
 
@@ -14,7 +15,7 @@ def main():
     devices = [int(d) for d in devices]
     model = YOLO(state_path)
 
-    os.makedirs(f"./runs/validation/{scale}", exist_ok=True)
+    os.makedirs(f"./runs/detect/validation/{scale}", exist_ok=True)
 
     iou_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
     conf_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
@@ -30,10 +31,18 @@ def main():
                 plots=True,
                 split="val",
                 device=devices,
-                project=f"./runs/validation/{scale}",
+                project=f"./runs/detect/validation/{scale}",
                 name=f"conf-{conf}-iou{iou}",
             )
             print(f"conf: {conf} iou: {iou} mAP50-95: {metrics.box.map}")
+            result = {
+                "map50-95": [metrics.box.map],
+                "map50": [metrics.box.map50],
+                "map75": [metrics.box.map75],
+                "all-maps": [metrics.box.maps],
+            }
+            df = pd.DataFrame(result)
+            df.to_csv(f"./runs/detect/validation/{scale}/maps.csv", index=False)
 
 
 if __name__ == "__main__":
