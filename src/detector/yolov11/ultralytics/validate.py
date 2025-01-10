@@ -26,7 +26,7 @@ def main():
                 plots=True,
                 split="val",
                 device=devices,
-                name=f"{scale}conf-{conf}-iou{iou}",
+                name=f"scale{scale}conf-{conf}-iou{iou}",
             )
             print(f"conf: {conf} iou: {iou} mAP50-95: {metrics.map}")
 
