@@ -12,8 +12,8 @@ def main():
     devices = [int(d) for d in devices]
     model = YOLO(f"./yolo11{scale}.yaml")
 
-    iou_threshs = range(0.05, 0.95, 0.05)
-    conf_threshs = range(0.05, 0.95, 0.05)
+    iou_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
+    conf_threshs = [round(i * 0.05, 2) for i in range(1, 20)]
     for iou in iou_threshs:
         for conf in conf_threshs:
             metrics = model.val(
