@@ -12,14 +12,13 @@ def main():
     devices = [int(d) for d in devices]
     model = YOLO(f"./yolo11{scale}.yaml")
     model.train(
-        data="/home/ar_track/ar-track/src/detector/yolov11/ultralytics/hek.yaml",
+        data="/home/rmansouri1/ar_track/ar-track/src/detector/yolov11/ultralytics/hek.yaml",
         batch=batch_size,
         val=True,
         plots=True,
         pretrained=False,
         close_mosaic=0,
         epochs=100,
-        time=12,
         save_period=1,
         imgsz=image_size,
         single_cls=True,
