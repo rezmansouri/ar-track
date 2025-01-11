@@ -1,7 +1,7 @@
 import os
 import sys
 import pandas as pd
-from pprint import pprint
+# from pprint import pprint
 
 
 def main():
@@ -18,7 +18,8 @@ def main():
 
     results_sorted = sorted(results, key=lambda x: x[2], reverse=True)
     print("scale:", results_path[-1])
-    pprint(results_sorted)
+    # pprint(results_sorted)
+    print(results_sorted[0])
 
 
 if __name__ == "__main__":
