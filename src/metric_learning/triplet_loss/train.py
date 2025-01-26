@@ -4,6 +4,7 @@ import json
 import utils
 import torch
 import numpy as np
+from tqdm import tqdm
 import torch.optim as optim
 from model import MobileNetV1
 from datetime import datetime
@@ -76,10 +77,9 @@ def main():
     loss_fn = utils.triplet_loss
 
     for epoch in range(1, n_epochs + 1):
-        print("epoch:", f"{epoch}/{n_epochs}", end="\t")
         t_loss = []
         model.train()
-        for a, p, n in train_loader:
+        for a, p, n in tqdm(train_loader, leave=True):
             a, p, n = a.to(device), p.to(device), n.to(device)
             optimizer.zero_grad()
             anchor, positive, negative = model(a), model(p), model(n)
@@ -89,10 +89,9 @@ def main():
             t_loss.append(loss.item())
         t_loss = np.mean(t_loss)
         train_loss.append(t_loss)
-        print("training loss:", t_loss, end="\t")
         model.eval()
         v_loss = []
-        for a, p, n in val_loader:
+        for a, p, n in tqdm(val_loader, leave=True):
             a, p, n = a.to(device), p.to(device), n.to(device)
             anchor, positive, negative = model(a), model(p), model(n)
             loss = loss_fn(anchor, positive, negative)
@@ -104,7 +103,9 @@ def main():
             best_state = model.state_dict()
             best_val_loss = v_loss
         val_loss.append(v_loss)
-        print("validation loss:", v_loss)
+        print(
+            f"epoch:{epoch}/{n_epochs}\tvalidation loss{v_loss}\ttraining loss:{t_loss}"
+        )
 
     np.save(f"{results_path}/train_loss.npy", np.array(train_loss))
     np.save(f"{results_path}/val_loss.npy", np.array(val_loss))
