@@ -72,7 +72,7 @@ def main():
     train_loss, val_loss = [], []
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    model = MobileNetV1().to(device)
+    model = MobileNetV1(latent_dim=LATENT_DIM).to(device)
     optimizer = optim.Adam(model.parameters())
     loss_fn = utils.triplet_loss
 
