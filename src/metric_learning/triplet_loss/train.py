@@ -102,7 +102,6 @@ def main():
             best_epoch = epoch
             best_state = model.state_dict()
             best_val_loss = v_loss
-        val_loss.append(v_loss)
         print(
             f"epoch:{epoch}/{n_epochs}\tvalidation loss{v_loss}\ttraining loss:{t_loss}"
         )
