@@ -23,4 +23,6 @@
 
 [10. Detection done - Tracker Grid search & new trackers](10.md)
 
-[10.ByteTrack and SORT done](11.md)
+[10. ByteTrack and SORT done](11.md)
+
+[12. Re-ID with triplet loss](12.md)
