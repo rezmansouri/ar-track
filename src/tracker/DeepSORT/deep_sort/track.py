@@ -63,7 +63,9 @@ class Track:
 
     """
 
-    def __init__(self, mean, covariance, track_id, n_init, max_age, feature=None):
+    def __init__(
+        self, mean, covariance, track_id, n_init, max_age, feature=None, confidence=0.0
+    ):
         self.mean = mean
         self.covariance = covariance
         self.track_id = track_id
@@ -75,6 +77,8 @@ class Track:
         self.features = []
         if feature is not None:
             self.features.append(feature)
+
+        self.confidence = confidence
 
         self._n_init = n_init
         self._max_age = max_age
@@ -138,6 +142,7 @@ class Track:
             self.mean, self.covariance, detection.to_xyah()
         )
         self.features.append(detection.feature)
+        self.confidence = detection.confidence
 
         self.hits += 1
         self.time_since_update = 0

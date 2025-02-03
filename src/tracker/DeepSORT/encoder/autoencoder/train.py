@@ -13,8 +13,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 def main():
     """empty"""
     train_dataset = utils.Dataset(
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/images",
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/labels",
+        "/Users/reza/Career/DMLab/AR_TRACKING/ar-track/data/HEK-JSOC/2024_test/images",
+        "/Users/reza/Career/DMLab/AR_TRACKING/ar-track/data/HEK-JSOC/2024_test/labels",
     )
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
     

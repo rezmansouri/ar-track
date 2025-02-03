@@ -98,6 +98,6 @@ class Dataset(torch.utils.data.Dataset):
 
 if __name__ == "__main__":
     dataset = Dataset(
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/images",
-        "/Users/reza/Career/DMLab/AR TRACKING/ar-track/data/HEK-JSOC/2024_test/labels",
+        "/Users/reza/Career/DMLab/AR_TRACKING/ar-track/data/HEK-JSOC/2024_test/images",
+        "/Users/reza/Career/DMLab/AR_TRACKING/ar-track/data/HEK-JSOC/2024_test/labels",
     )
