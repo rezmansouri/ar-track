@@ -26,3 +26,5 @@
 [10. ByteTrack and SORT done](11.md)
 
 [12. Re-ID with triplet loss](12.md)
+
+[13. SORT-ByteTrack-DeepSORT done](13.md)
